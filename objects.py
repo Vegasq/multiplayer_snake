@@ -5,7 +5,6 @@ import context
 from messages import GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT
 
 
-
 def get_empty_position():
     return (5, 5)
 
@@ -13,9 +12,9 @@ def get_empty_position():
 def get_new_position_from_direction(cell, direction):
     x, y = cell.get_position()
     if direction == GO_UP:
-        return x, y + 1
-    elif direction == GO_DOWN:
         return x, y - 1
+    elif direction == GO_DOWN:
+        return x, y + 1
     elif direction == GO_LEFT:
         return x - 1, y
     elif direction == GO_RIGHT:
@@ -31,8 +30,18 @@ class Cell(object):
         self._y = y
 
         self._alive = True
+        self._owner = None
+
+    def set_owner(self, owner):
+        self._owner = owner
+
+    def get_owner(self):
+        return self._owner
 
     def __unicode__(self):
+        return self.__str__()
+
+    def __repr__(self):
         return self.__str__()
 
     def __str__(self):
@@ -44,11 +53,11 @@ class Cell(object):
 
     @property
     def y(self):
-        return self._x
+        return self._y
 
     @property
     def position(self):
-        return (self._x, self._y)
+        return self._x, self._y
 
     def set_position(self, x, y):
         self._x = x
@@ -97,11 +106,28 @@ class Apple(CellStack):
 class Snake(CellStack):
     def __init__(self, client_uuid):
         super(Snake, self).__init__()
+
+        self.alive = True
+
         x, y = get_empty_position()
         self.uuid = client_uuid
-        self.add_cell(SnakeCell(x, y))
-        self.add_cell(SnakeCell(x, y - 1))
-        self.add_cell(SnakeCell(x, y - 2))
+
+        c1 = SnakeCell(x, y)
+        c1.set_owner(self)
+
+        c2 = SnakeCell(x, y+1)
+        c2.set_owner(self)
+
+        c3 = SnakeCell(x, y+2)
+        c3.set_owner(self)
+
+        self.add_cell(c1)
+        self.add_cell(c2)
+        self.add_cell(c3)
+
+    def kill(self):
+        print("Snake killed")
+        self.alive = False
 
     def move(self, direction):
         for i, c in enumerate(self.get_cells()):
@@ -126,6 +152,7 @@ class Snake(CellStack):
 class World(object):
     def create(self):
         self._w = []
+
         for row_number in range(0, 10):
             row = []
             for col_number in range(0, 50):
@@ -137,16 +164,53 @@ class World(object):
 
     def update(self, cell_stack):
         for cell in cell_stack.get_cells():
+            print(id(cell))
+            print(cell.get_position())
+            print(cell.x)
+            print(cell.y)
+
+            if (
+                cell.x < 0 or cell.y < 0 or
+                cell.x > len(self._w[0]) or cell.y > len(self._w)
+            ):
+                cell.get_owner().kill()
+
+            if self._w[cell.y][cell.x].__class__ != Empty:
+                # raise Exception("Collision error %s" % (
+                #     ", ".join([str(id(self._w[cell.x][cell.y])),
+                #                str(id(cell)),
+                #                str(self._w[cell.x][cell.y].__class__),
+                #                str(cell.__class__)])
+                # ))
+                cell.get_owner().kill()
+
             self._w[cell.y][cell.x] = cell
 
-    def printable(self):
-        sw = ""
-        for row in self._w:
-            sr = ""
-            for col in row:
-                sr += col.__str__()
-            sw += sr + "\n"
-        return sw
+    def flush_world(self):
+        p_w = []
+        for r in self._w:
+            p_r = []
+            for c in r:
+                p_r.append(c.printable_symbol)
+            p_w.append(p_r)
+
+        context.world = p_w
+
+        return p_w
+
+        #     print(["#" for i in r if i.__class__ != Empty])
+        #     for c in r:
+        #         print(c.__class__, end='')
+        # print("", end='')
+
+        # sw = ""
+        # for row in self._w:
+        #     sr = ""
+        #     for col in row:
+        #         sr += col.__str__()
+        #     sw += sr + "\n"
+        # return sw
+        return ""
 
 
 class Game(object):
@@ -155,6 +219,12 @@ class Game(object):
 
         self.world = World()
         self.world.create()
+
+    @property
+    def alive_snakes(self):
+        for s in self._snakes:
+            if s.alive:
+                yield s
 
     def is_snake_exist(self, client_uuid):
         for snake in self._snakes:
@@ -178,12 +248,15 @@ class Game(object):
                 if not self.is_snake_exist(client_uuid):
                     self.create_snake(client_uuid)
                 snake = self.get_snake_by_uuid(client_uuid)
-                snake.do(context.clients[client_uuid]["direction"])
+                if snake.alive:
+                    print("We have Snake: %s" % snake)
+                    snake.do(context.clients[client_uuid]["direction"])
 
             self.world.reset()
-            for snake in self._snakes:
+            for snake in self.alive_snakes:
+                print("Update world with %s" % snake)
                 self.world.update(snake)
 
-            print(self.world.printable())
+            print(self.world.flush_world())
 
             time.sleep(1)

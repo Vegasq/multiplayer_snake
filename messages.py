@@ -4,3 +4,5 @@ GO_UP = 1
 GO_DOWN = 2
 GO_RIGHT = 3
 GO_LEFT = 4
+
+GET_WORLD = 5
