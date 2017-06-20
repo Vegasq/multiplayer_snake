@@ -3,6 +3,7 @@ from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
 import settings
 import json
 import context
+import time
 
 
 class SnakeServer(socketserver.BaseRequestHandler):
@@ -24,17 +25,29 @@ class SnakeServer(socketserver.BaseRequestHandler):
             self.request.sendall(bytes(json.dumps(context.world), "utf-8"))
 
         elif message == NEW_CLIENT and user_uuid not in context.clients:
-            context.clients[user_uuid] = {"direction": GO_UP}
+            print("REGISTER NEW CLIENT")
+            context.clients[user_uuid] = {
+                "direction": GO_UP,
+                "address": self.client_address[0]}
             self.request.sendall(bytes(data, "utf-8"))
 
-        elif user_uuid in context.clients and message in [GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT]:
+        elif user_uuid in context.clients and message in [
+            GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT
+        ]:
             context.clients[user_uuid]["direction"] = message
             self.request.sendall(bytes(data, "utf-8"))
 
     @staticmethod
     def tcp_server():
-        server = socketserver.TCPServer(
-            (settings.host, settings.port), SnakeServer)
+        try:
+            server = socketserver.TCPServer(
+                (settings.host, settings.port), SnakeServer)
+            context.server_alive = True
+        except OSError as err:
+            print("Can't start server: %s" % err)
+            context.server_alive = False
+            time.sleep(5)
+            return SnakeServer.tcp_server()
 
         try:
             server.serve_forever()

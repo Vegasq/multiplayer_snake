@@ -6,6 +6,8 @@ import time
 import random
 from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
 import settings
+import threading
+
 
 
 class SnakeClient(object):
@@ -19,6 +21,8 @@ class SnakeClient(object):
         })
 
     def _send(self, message):
+        if message is None:
+            return
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((settings.host, settings.port))
         s.sendall(self.pack_message(message))
@@ -35,19 +39,57 @@ class SnakeClient(object):
         return json.loads(res)
 
     def loop(self):
-        for i in range(10):
-            self._send(random.choice([GO_UP, GO_RIGHT]))
-            w = self.get_world()
-            for r in w:
-                print("".join(r))
-            time.sleep(1)
+        while True:
+
+            for i in [
+                GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT,
+                GO_DOWN, GO_DOWN, GO_DOWN, GO_DOWN,
+                GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT,
+                GO_DOWN,
+                GO_RIGHT, GO_RIGHT,
+                GO_UP
+            ]:
+                self._send(i)
+                w = self.get_world()
+                print("\n" * 10)
+                for r in w:
+                    print("".join(r).replace(" ", "."))
+                time.sleep(0.01)
 
         # COMMANDS = [GO_DOWN, GO_LEFT, GO_UP, GO_RIGHT]
         # for i in COMMANDS:
         #     time.sleep(3)
         #     self._send(i)
 
+    def commands_handler(self):
+        while True:
+            for i in [
+                GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT,
+                GO_DOWN, GO_DOWN, GO_DOWN, GO_DOWN,
+                GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT,
+                GO_DOWN,
+                GO_RIGHT, GO_RIGHT,
+                GO_UP
+            ]:
+                self._send(i)
+                time.sleep(1)
+
+    def display_map(self):
+        while True:
+            w = self.get_world()
+            print("\n" * 10)
+            for r in w:
+                print("".join(r).replace(" ", "."))
+            time.sleep(0.01)
+
 
 client = SnakeClient()
 client.create()
-client.loop()
+
+
+dm = threading.Thread(name="tcp serv", target=client.display_map)
+cm = threading.Thread(name="game logic", target=client.commands_handler)
+
+dm.start()
+cm.start()
+

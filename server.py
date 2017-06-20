@@ -2,7 +2,7 @@ import threading
 import json
 
 import context
-from objects import Game
+from game import Game
 from tcp_server import SnakeServer
 
 
