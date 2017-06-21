@@ -1,6 +1,7 @@
 import time
 import context
 import random
+import settings
 
 from objects.empty import Empty
 from objects.snake import Snake
@@ -20,9 +21,9 @@ class World(object):
 
     def create(self):
         self._w = []
-        for row_number in range(0, 10):
+        for row_number in range(0, settings.rows):
             row = []
-            for col_number in range(0, 50):
+            for col_number in range(0, settings.columns):
                 row.append(Empty(col_number, row_number))
             self._w.append(row)
 
@@ -106,7 +107,7 @@ class Game(object):
                 time.sleep(1)
                 print("Waiting for server...")
                 continue
-            print(self._snakes)
+
             for client_uuid in context.clients.keys():
                 if not self.is_snake_exist(client_uuid):
                     self.create_snake(client_uuid)
@@ -122,4 +123,4 @@ class Game(object):
 
             self.world.flush_world()
 
-            time.sleep(1)
+            time.sleep(settings.game_speed)

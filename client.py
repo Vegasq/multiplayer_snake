@@ -5,11 +5,14 @@ import time
 from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
 import settings
 import threading
+import ui
 
 
 class SnakeClient(object):
     def __init__(self):
         self.uuid = str(uuid.uuid1())
+
+        self.ui = ui.SnakeUI()
 
     def pack_message(self, message):
         return json.dumps({
@@ -22,64 +25,55 @@ class SnakeClient(object):
             return
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((settings.host, settings.port))
-        s.sendall(self.pack_message(message))
-        resp = s.recv(8192)
+        s.sendall(bytes(self.pack_message(message), "utf-8"))
+        resp = self.recvall(s)
         s.close()
 
         return resp
+
+    def recvall(self, sock):
+        BUFF_SIZE = 4096  # 4 KiB
+        data = ""
+        while True:
+            part = sock.recv(BUFF_SIZE)
+
+            print("~" * 100)
+            print(part)
+            print(len(part))
+
+            data += part.strip().decode()
+            if len(part) < BUFF_SIZE:
+                # either 0 or end of data
+                break
+        return data
 
     def create(self):
         self._send(NEW_CLIENT)
 
     def get_world(self):
         res = self._send(GET_WORLD)
-        return json.loads(res)
-
-    def loop(self):
-        while True:
-
-            for i in [
-                GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT,
-                GO_DOWN, GO_DOWN, GO_DOWN, GO_DOWN,
-                GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT,
-                GO_DOWN,
-                GO_RIGHT, GO_RIGHT,
-                GO_UP
-            ]:
-                self._send(i)
-                w = self.get_world()
-                print("\n" * 10)
-                for r in w:
-                    print("".join(r).replace(" ", "."))
-                time.sleep(0.2)
+        try:
+            return json.loads(res)
+        except json.decoder.JSONDecodeError:
+            with open("dump", "w") as fl:
+                fl.write(res)
+            raise
 
     def commands_handler(self):
-        while True:
-            for i in [
-                GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT, GO_RIGHT,
-                GO_DOWN, GO_DOWN, GO_DOWN, GO_DOWN,
-                GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT, GO_LEFT,
-                GO_DOWN,
-                GO_RIGHT, GO_RIGHT,
-                GO_UP
-            ]:
-                self._send(i)
-                time.sleep(1)
+        direction = self.ui.get_event()
+        self._send(direction)
 
     def display_map(self):
+        w = self.get_world()
+        self.ui.draw(w)
+
+    def run(self):
         while True:
-            w = self.get_world()
-            print("\n" * 10)
-            for r in w:
-                print("".join(r).replace(" ", "."))
-            time.sleep(0.01)
+            self.commands_handler()
+            self.display_map()
 
 
 client = SnakeClient()
 client.create()
 
-dm = threading.Thread(name="tcp serv", target=client.display_map)
-cm = threading.Thread(name="game logic", target=client.commands_handler)
-
-dm.start()
-cm.start()
+client.run()

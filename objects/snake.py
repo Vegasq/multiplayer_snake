@@ -23,9 +23,13 @@ class Snake(CellStack):
         c3 = SnakeCell(x, y+2)
         c3.set_owner(self)
 
+        c4 = SnakeCell(x, y+3)
+        c4.set_owner(self)
+
         self.add_cell(c1)
         self.add_cell(c2)
         self.add_cell(c3)
+        self.add_cell(c4)
 
     def kill(self):
         print("Snake killed")
