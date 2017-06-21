@@ -1,5 +1,8 @@
+import threading
 from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
 
+
+lock = threading.Lock()
 
 clients = {}
 

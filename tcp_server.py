@@ -26,15 +26,17 @@ class SnakeServer(socketserver.BaseRequestHandler):
 
         elif message == NEW_CLIENT and user_uuid not in context.clients:
             print("REGISTER NEW CLIENT")
-            context.clients[user_uuid] = {
-                "direction": GO_UP,
-                "address": self.client_address[0]}
+            with context.lock:
+                context.clients[user_uuid] = {
+                    "direction": GO_UP,
+                    "address": self.client_address[0]}
             self.request.sendall(bytes(data, "utf-8"))
 
         elif user_uuid in context.clients and message in [
             GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT
         ]:
-            context.set_direction(user_uuid, message)
+            with context.lock:
+                context.set_direction(user_uuid, message)
             # context.clients[user_uuid]["direction"] = message
             self.request.sendall(bytes(data, "utf-8"))
 

@@ -9,10 +9,11 @@ import ui
 
 
 class SnakeClient(object):
-    def __init__(self):
+    def __init__(self, stupid=False):
         self.uuid = str(uuid.uuid1())
 
-        self.ui = ui.SnakeUI()
+        if not stupid:
+            self.ui = ui.SnakeUI()
 
     def pack_message(self, message):
         return json.dumps({
@@ -73,7 +74,8 @@ class SnakeClient(object):
             self.display_map()
 
 
-client = SnakeClient()
-client.create()
+if __name__ == "__main__":
+    client = SnakeClient()
+    client.create()
 
-client.run()
+    client.run()
