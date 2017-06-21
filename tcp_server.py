@@ -34,7 +34,8 @@ class SnakeServer(socketserver.BaseRequestHandler):
         elif user_uuid in context.clients and message in [
             GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT
         ]:
-            context.clients[user_uuid]["direction"] = message
+            context.set_direction(user_uuid, message)
+            # context.clients[user_uuid]["direction"] = message
             self.request.sendall(bytes(data, "utf-8"))
 
     @staticmethod

@@ -1,13 +1,10 @@
 import socket
-import hashlib
 import uuid
 import json
 import time
-import random
 from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
 import settings
 import threading
-
 
 
 class SnakeClient(object):
@@ -54,12 +51,7 @@ class SnakeClient(object):
                 print("\n" * 10)
                 for r in w:
                     print("".join(r).replace(" ", "."))
-                time.sleep(0.01)
-
-        # COMMANDS = [GO_DOWN, GO_LEFT, GO_UP, GO_RIGHT]
-        # for i in COMMANDS:
-        #     time.sleep(3)
-        #     self._send(i)
+                time.sleep(0.2)
 
     def commands_handler(self):
         while True:
@@ -86,10 +78,8 @@ class SnakeClient(object):
 client = SnakeClient()
 client.create()
 
-
 dm = threading.Thread(name="tcp serv", target=client.display_map)
 cm = threading.Thread(name="game logic", target=client.commands_handler)
 
 dm.start()
 cm.start()
-
