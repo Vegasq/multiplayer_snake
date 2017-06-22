@@ -3,12 +3,15 @@ import pygame
 import json
 import settings
 
-from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
+from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, \
+    GET_WORLD, CLIENT_RESET
 
 
 class SnakeUI(object):
     black = (0, 0, 0)
     white = (255, 255, 255)
+    green = (0, 255, 0)
+    red = (255, 0, 0)
 
     def __init__(self):
         pygame.init()
@@ -18,10 +21,17 @@ class SnakeUI(object):
 
     def get_color(self, obj):
         if obj == "#":
-            print(obj)
             return self.white
-        else:
+        elif obj == "@":
+            return self.green
+        elif obj == " ":
             return self.black
+        else:
+            if "type" in obj:
+                if obj["type"] == "SnakeCell":
+                    return obj["color"]
+        print("Unknown object: %s, len == %s" % (obj, len(obj)))
+        return self.red
 
     def global_values(self, current_map):
         self.row_count = len(current_map)
@@ -44,6 +54,11 @@ class SnakeUI(object):
                     return GO_UP
                 if event.key == pygame.K_DOWN:
                     return GO_DOWN
+
+                if event.key == pygame.K_r:
+                    return CLIENT_RESET
+                if event.key == pygame.K_q:
+                    sys.exit()
         return None
 
     def draw(self, current_map):
@@ -53,7 +68,7 @@ class SnakeUI(object):
 
         for y, row in enumerate(current_map):
             for x, col in enumerate(row):
-                if current_map[y][x] == " ":
+                if current_map[y][x] in [" ", ""]:
                     continue
 
                 pygame.draw.rect(

@@ -50,6 +50,13 @@ class Cell(object):
         return self._alive
 
 
+class Killable(object):
+    alive = True
+
+    def kill(self):
+        self.alive = False
+
+
 class CellStack(object):
     def __init__(self):
         self._cells = []

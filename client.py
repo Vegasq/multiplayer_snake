@@ -2,7 +2,7 @@ import socket
 import uuid
 import json
 import time
-from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
+from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD, CLIENT_RESET
 import settings
 import threading
 import ui
@@ -10,7 +10,8 @@ import ui
 
 class SnakeClient(object):
     def __init__(self, stupid=False):
-        self.uuid = str(uuid.uuid1())
+        self.uuid = None
+        self.ui = None
 
         if not stupid:
             self.ui = ui.SnakeUI()
@@ -38,9 +39,9 @@ class SnakeClient(object):
         while True:
             part = sock.recv(BUFF_SIZE)
 
-            print("~" * 100)
-            print(part)
-            print(len(part))
+            # print("~" * 100)
+            # print(part)
+            # print(len(part))
 
             data += part.strip().decode()
             if len(part) < BUFF_SIZE:
@@ -49,6 +50,7 @@ class SnakeClient(object):
         return data
 
     def create(self):
+        self.uuid = str(uuid.uuid1())
         self._send(NEW_CLIENT)
 
     def get_world(self):
@@ -61,8 +63,11 @@ class SnakeClient(object):
             raise
 
     def commands_handler(self):
-        direction = self.ui.get_event()
-        self._send(direction)
+        cmd = self.ui.get_event()
+        if cmd in [GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT]:
+            self._send(cmd)
+        if cmd == CLIENT_RESET:
+            self.create()
 
     def display_map(self):
         w = self.get_world()

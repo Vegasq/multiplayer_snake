@@ -1,16 +1,30 @@
-from objects.common import Cell, CellStack
+from objects.common import Cell, CellStack, Killable
 from messages import GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT
+import context
+import random
+import json
 
 
 class SnakeCell(Cell):
     printable_symbol = "#"
 
+    def is_head(self):
+        snake = self.get_owner()
+        if snake.is_head(self):
+            return True
+        return False
 
-class Snake(CellStack):
+    def serialize_cell(self):
+        return {
+            "type": "SnakeCell",
+            "color": self.get_owner().color,
+            "printable_symbol": "#"
+        }
+
+
+class Snake(CellStack, Killable):
     def __init__(self, client_uuid, x, y):
         super(Snake, self).__init__()
-
-        self.alive = True
 
         self.uuid = client_uuid
 
@@ -31,9 +45,25 @@ class Snake(CellStack):
         self.add_cell(c3)
         self.add_cell(c4)
 
-    def kill(self):
-        print("Snake killed")
-        self.alive = False
+        self.color = (random.randint(0, 255),
+                      random.randint(64, 255),
+                      random.randint(128, 255))
+
+    def get_current_direction(self):
+        return context.clients[self.uuid]["direction"]
+
+    def get_head(self):
+        return self.get_cells()[0]
+
+    def is_head(self, cell):
+        if cell.__class__ != SnakeCell:
+            raise Exception("Non snake cell")
+
+        head = self.get_head()
+        if cell == head:
+            return True
+
+        return False
 
     def get_new_position_from_direction(self, cell, direction):
         x, y = cell.get_position()
@@ -60,10 +90,13 @@ class Snake(CellStack):
                 c.set_position(old_x, old_y)
                 old_x, old_y = prev
 
-    def grow(self, direction):
+    def grow(self):
         head = self.get_cells()[0]
-        x, y = self.get_new_position_from_direction(head, direction)
-        self.add_cell(SnakeCell(x, y))
+        x, y = self.get_new_position_from_direction(
+            head, self.get_current_direction())
+        c = SnakeCell(x, y)
+        c.set_owner(self)
+        self.add_cell(c)
 
     def do(self, direction):
         self.move(direction)

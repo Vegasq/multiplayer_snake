@@ -4,7 +4,8 @@ import random
 import settings
 
 from objects.empty import Empty
-from objects.snake import Snake
+from objects.snake import Snake, SnakeCell
+from objects.apple import Apple, AppleCell
 
 
 class World(object):
@@ -33,17 +34,17 @@ class World(object):
     def update(self, cell_stack):
         for cell in cell_stack.get_cells():
 
-            print("X:")
-            print(cell.x)
-            print(len(self._w[0]))
-            print(cell.x >= len(self._w[0]))
-
-            print("")
-
-            print("Y:")
-            print(cell.y)
-            print(len(self._w))
-            print(cell.y >= len(self._w))
+            # print("X:")
+            # print(cell.x)
+            # print(len(self._w[0]))
+            # print(cell.x >= len(self._w[0]))
+            #
+            # print("")
+            #
+            # print("Y:")
+            # print(cell.y)
+            # print(len(self._w))
+            # print(cell.y >= len(self._w))
 
             if (
                 cell.x < 0 or cell.y < 0 or
@@ -53,8 +54,34 @@ class World(object):
                 continue
 
             if self._w[cell.y][cell.x].__class__ != Empty:
-                cell.get_owner().kill()
-                continue
+                dest_cell = self._w[cell.y][cell.x]
+
+                if (
+                    cell.is_head() and  # If we move HEAD
+                    dest_cell.__class__ == SnakeCell and  # Over another SNAKE
+                    not dest_cell.is_head()  # And it's not head-to-head
+                ):
+                    cell.get_owner().kill()
+                    continue
+                elif (
+                    cell.is_head() and  # If we move HEAD
+                    dest_cell.__class__ == SnakeCell and  # Over another SNAKE
+                    dest_cell.is_head()  # And it's head-to-head
+                ):
+                    cell.get_owner().kill()
+                    dest_cell.get_owner().kill()
+                    continue
+                elif (
+                    dest_cell.__class__ == SnakeCell and
+                    not cell.is_head() and dest_cell.is_head()
+                ):
+                    dest_cell.get_owner().kill()
+                elif (
+                    cell.is_head() and
+                    dest_cell.__class__ == AppleCell
+                ):
+                    cell.get_owner().grow()
+                    dest_cell.get_owner().kill()
 
             self._w[cell.y][cell.x] = cell
 
@@ -63,7 +90,10 @@ class World(object):
         for r in self._w:
             p_r = []
             for c in r:
-                p_r.append(c.printable_symbol)
+                if hasattr(c, "serialize_cell"):
+                    p_r.append(c.serialize_cell())
+                else:
+                    p_r.append(c.printable_symbol)
             p_w.append(p_r)
 
         context.world = p_w
@@ -75,14 +105,29 @@ class Game(object):
     def __init__(self):
         self._snakes = []
 
+        self._apples = []
+
         self.world = World()
         self.world.create()
+
+    def create_apple(self):
+        x, y = self.world.get_empty_position()
+        self._apples.append(Apple(x, y))
 
     @property
     def alive_snakes(self):
         for s in self._snakes:
             if s.alive:
                 yield s
+
+    def total_alive_apples(self):
+        return len([a for a in self._apples if a.alive])
+
+    @property
+    def alive_apples(self):
+        for a in self._apples:
+            if a.alive:
+                yield a
 
     def is_snake_exist(self, client_uuid):
         for snake in self._snakes:
@@ -103,6 +148,9 @@ class Game(object):
     def loop(self):
         while True:
             print('Server tick')
+            if self.total_alive_apples() < 10:
+                self.create_apple()
+
             if not context.server_alive:
                 time.sleep(1)
                 print("Waiting for server...")
@@ -117,6 +165,10 @@ class Game(object):
                     snake.do(context.clients[client_uuid]["direction"])
 
             self.world.reset()
+
+            for apple in self.alive_apples:
+                self.world.update(apple)
+
             for snake in self.alive_snakes:
                 print("Update world with %s" % snake)
                 self.world.update(snake)
