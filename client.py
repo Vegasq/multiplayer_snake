@@ -38,9 +38,9 @@ class SnakeClient(object):
         while True:
             part = sock.recv(BUFF_SIZE)
 
-            print("~" * 100)
-            print(part)
-            print(len(part))
+            # print("~" * 100)
+            # print(part)
+            # print(len(part))
 
             data += part.strip().decode()
             if len(part) < BUFF_SIZE:

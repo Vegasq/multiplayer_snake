@@ -1,8 +1,13 @@
-from objects.common import Cell, CellStack
+from objects.common import Cell, CellStack, Killable
 
 
-class Apple(CellStack):
-    def __init__(self):
+class Apple(CellStack, Killable):
+    def __init__(self, x, y):
         super(Apple, self).__init__()
-        c = Cell(3, 3)
+        c = AppleCell(x, y)
+        c.set_owner(self)
         self.add_cell(c)
+
+
+class AppleCell(Cell):
+    printable_symbol = "@"

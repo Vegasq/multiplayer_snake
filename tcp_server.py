@@ -9,15 +9,15 @@ import time
 class SnakeServer(socketserver.BaseRequestHandler):
     def unpack_message(self, message):
         message = str(message)
-        print("Unpacking %s" % message)
+        # print("Unpacking %s" % message)
         m = json.loads(message)
         return m["uuid"], m["message"]
 
     def handle(self):
         data = self.request.recv(1024).strip().decode()
 
-        print("{} wrote:".format(self.client_address[0]))
-        print(data)
+        # print("{} wrote:".format(self.client_address[0]))
+        # print(data)
 
         user_uuid, message = self.unpack_message(data)
 

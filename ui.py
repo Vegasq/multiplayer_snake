@@ -9,6 +9,7 @@ from messages import NEW_CLIENT, GO_UP, GO_DOWN, GO_RIGHT, GO_LEFT, GET_WORLD
 class SnakeUI(object):
     black = (0, 0, 0)
     white = (255, 255, 255)
+    red = (0, 255, 0)
 
     def __init__(self):
         pygame.init()
@@ -18,8 +19,9 @@ class SnakeUI(object):
 
     def get_color(self, obj):
         if obj == "#":
-            print(obj)
             return self.white
+        elif obj == "@":
+            return self.red
         else:
             return self.black
 
