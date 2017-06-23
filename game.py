@@ -3,6 +3,9 @@ import context
 import random
 import settings
 
+from typing import List
+
+from objects.common import Cell, CellStack
 from objects.empty import Empty
 from objects.snake import Snake, SnakeCell
 from objects.apple import Apple, AppleCell
@@ -31,6 +34,14 @@ class World(object):
     def reset(self):
         self.create()
 
+    # def who_will_die(self, a: Cell, b: Cell) -> List[CellStack]:
+    #     if a.hardness == b.hardness:
+    #         return [a.get_owner(), b.get_owner()]
+    #     elif a.hardness > b.hardness:
+    #         return [b.get_owner()]
+    #     elif b.hardness > a.hardness:
+    #         return [a.get_owner()]
+
     def update(self, cell_stack):
         for cell in cell_stack.get_cells():
 
@@ -54,6 +65,10 @@ class World(object):
                 continue
 
             if self._w[cell.y][cell.x].__class__ != Empty:
+                # objs_to_die = self.who_will_die(cell, self._w[cell.y][cell.x])
+                # for o in objs_to_die:
+                #     o.kill()
+
                 dest_cell = self._w[cell.y][cell.x]
 
                 if (
@@ -101,33 +116,39 @@ class World(object):
         return p_w
 
 
-class Game(object):
-    def __init__(self):
+class Stack(object):
+    def __init__(self) -> None:
         self._snakes = []
-
         self._apples = []
 
-        self.world = World()
-        self.world.create()
-
-    def create_apple(self):
-        x, y = self.world.get_empty_position()
-        self._apples.append(Apple(x, y))
+    def add(self, obj) -> None:
+        if obj.__class__ == Snake:
+            self._snakes.append(obj)
+        elif obj.__class__ == Apple:
+            self._apples.append(obj)
 
     @property
-    def alive_snakes(self):
+    def all_alive_snakes(self) -> Snake:
         for s in self._snakes:
             if s.alive:
                 yield s
 
-    def total_alive_apples(self):
-        return len([a for a in self._apples if a.alive])
-
     @property
-    def alive_apples(self):
+    def all_alive_apples(self) -> Apple:
         for a in self._apples:
             if a.alive:
                 yield a
+
+    @property
+    def all(self):
+        for i in self.all_alive_apples:
+            yield i
+        for i in self.all_alive_snakes:
+            yield i
+
+    @property
+    def alive_apples_count(self) -> None:
+        return len([a for a in self._apples if a.alive])
 
     def is_snake_exist(self, client_uuid):
         for snake in self._snakes:
@@ -141,39 +162,51 @@ class Game(object):
                 return snake
         raise Exception("Snake with %s not found." % client_uuid)
 
+
+class Game(object):
+    def __init__(self):
+        self.stack = Stack()
+
+        self.world = World()
+        self.world.create()
+
+    def create_apple(self):
+        x, y = self.world.get_empty_position()
+        self.stack.add(Apple(x, y))
+
     def create_snake(self, client_uuid):
         x, y = self.world.get_empty_position()
-        self._snakes.append(Snake(client_uuid, x, y))
+        self.stack.add(Snake(client_uuid, x, y))
 
     def loop(self):
         while True:
-            print('Server tick')
-            if self.total_alive_apples() < 10:
-                self.create_apple()
-
             if not context.server_alive:
                 time.sleep(1)
                 print("Waiting for server...")
                 continue
 
+            # Create new Snakes at the start of step
             with context.lock:
                 for client_uuid in context.clients.keys():
-                    if not self.is_snake_exist(client_uuid):
+                    if not self.stack.is_snake_exist(client_uuid):
                         self.create_snake(client_uuid)
-                    snake = self.get_snake_by_uuid(client_uuid)
-                    if snake.alive:
-                        print("We have Snake: %s" % snake)
-                        snake.do(context.clients[client_uuid]["direction"])
 
+            # Generate apples
+            if self.stack.alive_apples_count < 10:
+                self.create_apple()
+
+            # Move snakes
+            for snake in self.stack.all_alive_snakes:
+                snake.do(context.clients[client_uuid]["direction"])
+
+            # Empty current world
             self.world.reset()
 
-            for apple in self.alive_apples:
-                self.world.update(apple)
+            # Fill world + collision
+            for obj in self.stack.all:
+                self.world.update(obj)
 
-            for snake in self.alive_snakes:
-                print("Update world with %s" % snake)
-                self.world.update(snake)
-
+            # Dump new map to public
             self.world.flush_world()
 
             time.sleep(settings.game_speed)
