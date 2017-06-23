@@ -1,14 +1,12 @@
 import threading
-import json
 
-import context
 from game import Game
-from tcp_server import SnakeServer
+from networking import Server
 
 
 def start():
     threads = []
-    ts = threading.Thread(name="tcp serv", target=SnakeServer.tcp_server)
+    ts = threading.Thread(name="tcp serv", target=Server.start)
     threads.append(ts)
 
     console_printer = Game()

@@ -156,13 +156,14 @@ class Game(object):
                 print("Waiting for server...")
                 continue
 
-            for client_uuid in context.clients.keys():
-                if not self.is_snake_exist(client_uuid):
-                    self.create_snake(client_uuid)
-                snake = self.get_snake_by_uuid(client_uuid)
-                if snake.alive:
-                    print("We have Snake: %s" % snake)
-                    snake.do(context.clients[client_uuid]["direction"])
+            with context.lock:
+                for client_uuid in context.clients.keys():
+                    if not self.is_snake_exist(client_uuid):
+                        self.create_snake(client_uuid)
+                    snake = self.get_snake_by_uuid(client_uuid)
+                    if snake.alive:
+                        print("We have Snake: %s" % snake)
+                        snake.do(context.clients[client_uuid]["direction"])
 
             self.world.reset()
 
