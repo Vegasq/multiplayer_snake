@@ -34,28 +34,39 @@ class World(object):
     def reset(self):
         self.create()
 
-    # def who_will_die(self, a: Cell, b: Cell) -> List[CellStack]:
-    #     if a.hardness == b.hardness:
-    #         return [a.get_owner(), b.get_owner()]
-    #     elif a.hardness > b.hardness:
-    #         return [b.get_owner()]
-    #     elif b.hardness > a.hardness:
-    #         return [a.get_owner()]
+    def who_will_die(self, a: Cell, b: Cell) -> List[CellStack]:
+        if a.hardness == b.hardness:
+            return [a.get_owner(), b.get_owner()]
+        elif a.hardness > b.hardness:
+            return [b.get_owner()]
+        elif b.hardness > a.hardness:
+            return [a.get_owner()]
+
+    def who_will_grow(self, a, b) -> Snake:
+        we_have_apple = False
+        we_have_snake = False
+
+        if AppleCell in [a.__class__, b.__class__]:
+            we_have_apple = True
+
+        if SnakeCell in [a.__class__, b.__class__]:
+            we_have_snake = True
+
+        if we_have_apple and we_have_snake:
+            return a.get_owner() if a.__class__ == SnakeCell else b.get_owner()
+
+    def collide(self, a, b):
+        objs_to_die = self.who_will_die(a, b)
+        snake = self.who_will_grow(a, b)
+
+        for o in objs_to_die:
+            o.kill()
+
+        if snake:
+            snake.grow()
 
     def update(self, cell_stack):
         for cell in cell_stack.get_cells():
-
-            # print("X:")
-            # print(cell.x)
-            # print(len(self._w[0]))
-            # print(cell.x >= len(self._w[0]))
-            #
-            # print("")
-            #
-            # print("Y:")
-            # print(cell.y)
-            # print(len(self._w))
-            # print(cell.y >= len(self._w))
 
             if (
                 cell.x < 0 or cell.y < 0 or
@@ -65,40 +76,38 @@ class World(object):
                 continue
 
             if self._w[cell.y][cell.x].__class__ != Empty:
-                # objs_to_die = self.who_will_die(cell, self._w[cell.y][cell.x])
-                # for o in objs_to_die:
-                #     o.kill()
+                self.collide(cell, self._w[cell.y][cell.x])
 
-                dest_cell = self._w[cell.y][cell.x]
-
-                if (
-                    cell.is_head() and  # If we move HEAD
-                    dest_cell.__class__ == SnakeCell and  # Over another SNAKE
-                    not dest_cell.is_head()  # And it's not head-to-head
-                ):
-                    cell.get_owner().kill()
-                    continue
-                elif (
-                    cell.is_head() and  # If we move HEAD
-                    dest_cell.__class__ == SnakeCell and  # Over another SNAKE
-                    dest_cell.is_head()  # And it's head-to-head
-                ):
-                    cell.get_owner().kill()
-                    dest_cell.get_owner().kill()
-                    continue
-                elif (
-                    dest_cell.__class__ == SnakeCell and
-                    not cell.is_head() and dest_cell.is_head()
-                ):
-                    dest_cell.get_owner().kill()
-                elif (
-                    cell.is_head() and
-                    dest_cell.__class__ == AppleCell
-                ):
-                    cell.get_owner().grow()
-                    dest_cell.get_owner().kill()
-
-            self._w[cell.y][cell.x] = cell
+                # dest_cell = self._w[cell.y][cell.x]
+                #
+                # if (
+                #     cell.is_head() and  # If we move HEAD
+                #     dest_cell.__class__ == SnakeCell and  # Over another SNAKE
+                #     not dest_cell.is_head()  # And it's not head-to-head
+                # ):
+                #     cell.get_owner().kill()
+                #     continue
+                # elif (
+                #     cell.is_head() and  # If we move HEAD
+                #     dest_cell.__class__ == SnakeCell and  # Over another SNAKE
+                #     dest_cell.is_head()  # And it's head-to-head
+                # ):
+                #     cell.get_owner().kill()
+                #     dest_cell.get_owner().kill()
+                #     continue
+                # elif (
+                #     dest_cell.__class__ == SnakeCell and
+                #     not cell.is_head() and dest_cell.is_head()
+                # ):
+                #     dest_cell.get_owner().kill()
+                # elif (
+                #     cell.is_head() and
+                #     dest_cell.__class__ == AppleCell
+                # ):
+                #     cell.get_owner().grow()
+                #     dest_cell.get_owner().kill()
+            if cell.alive:
+                self._w[cell.y][cell.x] = cell
 
     def flush_world(self):
         p_w = []

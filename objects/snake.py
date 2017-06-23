@@ -28,16 +28,16 @@ class Snake(CellStack, Killable):
 
         self.uuid = client_uuid
 
-        c1 = SnakeCell(x, y)
+        c1 = SnakeCell(x, y, hardness=4)
         c1.set_owner(self)
 
-        c2 = SnakeCell(x, y+1)
+        c2 = SnakeCell(x, y+1, hardness=5)
         c2.set_owner(self)
 
-        c3 = SnakeCell(x, y+2)
+        c3 = SnakeCell(x, y+2, hardness=5)
         c3.set_owner(self)
 
-        c4 = SnakeCell(x, y+3)
+        c4 = SnakeCell(x, y+3, hardness=5)
         c4.set_owner(self)
 
         self.add_cell(c1)
@@ -94,7 +94,7 @@ class Snake(CellStack, Killable):
         head = self.get_cells()[0]
         x, y = self.get_new_position_from_direction(
             head, self.get_current_direction())
-        c = SnakeCell(x, y)
+        c = SnakeCell(x, y, hardness=5)
         c.set_owner(self)
         self.add_cell(c)
 
