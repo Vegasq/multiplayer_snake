@@ -9,6 +9,7 @@ from objects.common import Cell, CellStack
 from objects.empty import Empty
 from objects.snake import Snake, SnakeCell
 from objects.apple import Apple, AppleCell
+from objects.wall import Wall, WallCell
 
 
 class World(object):
@@ -78,34 +79,6 @@ class World(object):
             if self._w[cell.y][cell.x].__class__ != Empty:
                 self.collide(cell, self._w[cell.y][cell.x])
 
-                # dest_cell = self._w[cell.y][cell.x]
-                #
-                # if (
-                #     cell.is_head() and  # If we move HEAD
-                #     dest_cell.__class__ == SnakeCell and  # Over another SNAKE
-                #     not dest_cell.is_head()  # And it's not head-to-head
-                # ):
-                #     cell.get_owner().kill()
-                #     continue
-                # elif (
-                #     cell.is_head() and  # If we move HEAD
-                #     dest_cell.__class__ == SnakeCell and  # Over another SNAKE
-                #     dest_cell.is_head()  # And it's head-to-head
-                # ):
-                #     cell.get_owner().kill()
-                #     dest_cell.get_owner().kill()
-                #     continue
-                # elif (
-                #     dest_cell.__class__ == SnakeCell and
-                #     not cell.is_head() and dest_cell.is_head()
-                # ):
-                #     dest_cell.get_owner().kill()
-                # elif (
-                #     cell.is_head() and
-                #     dest_cell.__class__ == AppleCell
-                # ):
-                #     cell.get_owner().grow()
-                #     dest_cell.get_owner().kill()
             if cell.alive:
                 self._w[cell.y][cell.x] = cell
 
@@ -129,12 +102,15 @@ class Stack(object):
     def __init__(self) -> None:
         self._snakes = []
         self._apples = []
+        self._walls = []
 
     def add(self, obj) -> None:
         if obj.__class__ == Snake:
             self._snakes.append(obj)
         elif obj.__class__ == Apple:
             self._apples.append(obj)
+        elif obj.__class__ == Wall:
+            self._walls.append(obj)
 
     @property
     def all_alive_snakes(self) -> Snake:
@@ -147,10 +123,17 @@ class Stack(object):
         for a in self._apples:
             if a.alive:
                 yield a
+    
+    @property
+    def all_walls(self):
+        for w in self._walls:
+            yield w
 
     @property
     def all(self):
         for i in self.all_alive_apples:
+            yield i
+        for i in self.all_walls:
             yield i
         for i in self.all_alive_snakes:
             yield i
@@ -187,6 +170,10 @@ class Game(object):
         x, y = self.world.get_empty_position()
         self.stack.add(Snake(client_uuid, x, y))
 
+    def create_wall(self):
+        x, y = self.world.get_empty_position()
+        self.stack.add(Wall(x, y))
+
     def loop(self):
         while True:
             if not context.server_alive:
@@ -203,6 +190,9 @@ class Game(object):
             # Generate apples
             if self.stack.alive_apples_count < 10:
                 self.create_apple()
+
+            if self.stack.alive_apples_count < 10:
+                self.create_wall()
 
             # Move snakes
             for snake in self.stack.all_alive_snakes:
