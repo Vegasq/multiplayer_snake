@@ -142,6 +142,17 @@ class Stack(object):
     def alive_apples_count(self) -> None:
         return len([a for a in self._apples if a.alive])
 
+    @property
+    def all(self):
+        for i in self.all_alive_apples:
+            yield i
+        for i in self.all_alive_snakes:
+            yield i
+
+    @property
+    def alive_apples_count(self) -> None:
+        return len([a for a in self._apples if a.alive])
+
     def is_snake_exist(self, client_uuid):
         for snake in self._snakes:
             if snake.uuid == client_uuid:
