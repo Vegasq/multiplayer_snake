@@ -1,5 +1,6 @@
 import random
 from objects.common import Cell, CellStack, Killable
+import settings
 
 wall_a = (
     (0, 0),
@@ -54,11 +55,44 @@ class Wall(CellStack, Killable):
     """
     It's Killable for cases when tail of wall out of screen.
     """
-    def __init__(self, x, y):
+
+    def _create_frame(self):
+        wall_template = []
+        # top border
+        for i in range(0, settings.columns):
+            wall_template.append((i, 0))
+
+        # bottom border
+        for i in range(0, settings.columns - 1):
+            wall_template.append((i, settings.rows-1))
+
+        # left border
+        for i in range(1, settings.rows - 1):
+            wall_template.append((0, i))
+
+        # right border
+        for i in range(1, settings.rows - 1):
+            wall_template.append((settings.columns - 1, i))
+        return wall_template
+
+    def __init__(self, x, y, frame=False):
         super(Wall, self).__init__()
-        wall_template = random.choice(all_walls)
+        self.is_frame = frame
+        if self.is_frame:
+            wall_template = self._create_frame()
+            hard = 10
+        else:
+            wall_template = random.choice(all_walls)
+            hard = 9
 
         for pos in wall_template:
-            c = WallCell(x + pos[0], y + pos[1], hardness=10)
+            c = WallCell(x + pos[0], y + pos[1], hardness=hard)
             c.set_owner(self)
             self.add_cell(c)
+
+    def kill(self):
+        print("Killing wall frame=%s alive=%s" % (
+            self.is_frame,
+            self.alive
+        ))
+        super(Wall, self).kill()

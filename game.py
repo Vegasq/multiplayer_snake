@@ -61,7 +61,12 @@ class World(object):
         snake = self.who_will_grow(a, b)
 
         for o in objs_to_die:
-            o.kill()
+            if o.alive:
+                print(a.x, a.y)
+                print(b.x, b.y)
+                print(a.get_owner(), b.get_owner())
+
+                o.kill()
 
         if snake:
             snake.grow()
@@ -73,7 +78,9 @@ class World(object):
                 cell.x < 0 or cell.y < 0 or
                 cell.x >= len(self._w[0]) or cell.y >= len(self._w)
             ):
-                cell.get_owner().kill()
+                if cell.get_owner().alive:
+                    print(cell.x, cell.y)
+                    cell.get_owner().kill()
                 continue
 
             if self._w[cell.y][cell.x].__class__ != Empty:
@@ -125,15 +132,16 @@ class Stack(object):
                 yield a
     
     @property
-    def all_walls(self):
+    def all_alive_walls(self):
         for w in self._walls:
-            yield w
+            if w.alive:
+                yield w
 
     @property
     def all(self):
         for i in self.all_alive_apples:
             yield i
-        for i in self.all_walls:
+        for i in self.all_alive_walls:
             yield i
         for i in self.all_alive_snakes:
             yield i
@@ -143,8 +151,14 @@ class Stack(object):
         return len([a for a in self._apples if a.alive])
 
     @property
+    def walls_count(self) -> None:
+        return len(self._walls)
+
+    @property
     def all(self):
         for i in self.all_alive_apples:
+            yield i
+        for i in self.all_alive_walls:
             yield i
         for i in self.all_alive_snakes:
             yield i
@@ -182,8 +196,16 @@ class Game(object):
         self.stack.add(Snake(client_uuid, x, y))
 
     def create_wall(self):
-        x, y = self.world.get_empty_position()
-        self.stack.add(Wall(x, y))
+
+        if self.stack.walls_count == 0:
+            print("Create frame")
+            frame = True
+            x, y = 0, 0
+        else:
+            frame = False
+            x, y = self.world.get_empty_position()
+
+        self.stack.add(Wall(x, y, frame=frame))
 
     def loop(self):
         while True:
@@ -202,7 +224,7 @@ class Game(object):
             if self.stack.alive_apples_count < 10:
                 self.create_apple()
 
-            if self.stack.alive_apples_count < 10:
+            if self.stack.walls_count < 10:
                 self.create_wall()
 
             # Move snakes
