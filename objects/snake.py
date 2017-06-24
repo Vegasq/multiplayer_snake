@@ -18,7 +18,8 @@ class SnakeCell(Cell):
         return {
             "type": "SnakeCell",
             "color": self.get_owner().color,
-            "printable_symbol": "#"
+            "printable_symbol": "#",
+            "alive": self.get_owner().alive
         }
 
 

@@ -32,7 +32,10 @@ class SnakeUI(object):
         else:
             if "type" in obj:
                 if obj["type"] == "SnakeCell":
-                    return obj["color"]
+                    if obj["alive"]:
+                        return obj["color"]
+                    else:
+                        return self.red
         print("Unknown object: %s, len == %s" % (obj, len(obj)))
         return self.red
 
