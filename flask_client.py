@@ -38,7 +38,7 @@ def handle_message(data):
     elif command == "right":
         cli.send(GO_RIGHT)
     elif command == "r":
-        cli.send(CLIENT_RESET)
+        cli.send(NEW_CLIENT)
 
 
 @app.route('/')

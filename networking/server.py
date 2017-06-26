@@ -11,6 +11,9 @@ from utils import messages as utils_messages
 class Server(socketserver.BaseRequestHandler):
     def register_new_client(self, user_uuid: str) -> None:
         with context.lock:
+            if user_uuid in context.clients:
+                return
+
             context.clients[user_uuid] = {
                 "direction": GO_UP,
                 "address": self.client_address[0]

@@ -32,6 +32,7 @@
                 socket.emit('key_pressed', my_uuid+'|down');
             } else if (event.code == "KeyR") {
                 socket.emit('key_pressed', my_uuid+'|r');
+                my_uuid = guid()
             }
         });
 
