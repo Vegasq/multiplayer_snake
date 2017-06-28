@@ -15,8 +15,9 @@ socketio = SocketIO(app)
 
 
 @socketio.on('map')
-def handle_message(data):
+def handle_message(user_uuid):
     cli = Client()
+    cli.set_uuid(user_uuid)
     resp = cli.send(GET_WORLD)
     emit("map", resp)
 
@@ -47,4 +48,4 @@ def index():
 
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, host='0.0.0.0')

@@ -1,9 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="viewport"
+          content="width=386, user-scalable=no, initial-scale=1, maximum-scale=1">
+
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        body { position: fixed; overflow-y:scroll }
+        html, body {
+          width:  100%;
+          height: 100%;
+          margin: 0px;
+          overflow: auto;
+        }
+
+
+    </style>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <script type="text/javascript"
+            src="//hammerjs.github.io/dist/hammer.min.js"></script>
     <script type="text/javascript" charset="utf-8">
 
         // borrowed https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
@@ -17,67 +33,153 @@
             s4() + '-' + s4() + s4() + s4();
         }
 
-        var my_uuid = guid()
+        class SnakeWebUI {
+            constructor() {
+                this.canv = document.getElementById("game_canvas");
+                this.ctx = this.canv.getContext("2d");
 
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
+                this.uuid = guid();
+                this.socket = io.connect('http://' + document.domain + ':' +
+                    location.port);
+                this.socket.emit('key_pressed', this.uuid+'|up');
 
-        document.addEventListener('keydown', function(event) {
-            if (event.code == "ArrowRight") {
-                socket.emit('key_pressed', my_uuid+'|right');
-            } else if (event.code == "ArrowLeft") {
-                socket.emit('key_pressed', my_uuid+'|left');
-            } else if (event.code == "ArrowUp") {
-                socket.emit('key_pressed', my_uuid+'|up');
-            } else if (event.code == "ArrowDown") {
-                socket.emit('key_pressed', my_uuid+'|down');
-            } else if (event.code == "KeyR") {
-                socket.emit('key_pressed', my_uuid+'|r');
-                my_uuid = guid()
+                this.side_size = 8;
+
+                this.is_map_created = false;
+
+                this.map = null;
+                this.previous_map = null;
+
+                this.hammertime = new Hammer(document.body);
+                this.hammertime.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+
             }
-        });
 
-        setInterval(function(){
-            socket.emit('map', 'I want news :D ');
-        }, 50);
+            create_map_vars (data) {
+                this.rows_count = data.length;
+                this.cols_count = data[0].length;
 
-        socket.on('map', function(data){
-            var side_size = 8;
-            data = JSON.parse(data);
-            var rows_count = data.length;
-            var cols_count = data[0].length;
-
-            var canv = document.getElementById("game_canvas");
-            canv.setAttribute("width", cols_count * side_size);
-            canv.setAttribute("height", rows_count * side_size);
-            var ctx = canv.getContext("2d");
-            ctx.beginPath();
-
-            var cell;
-            for (var y=0; y<=rows_count-1; y++) {
-                for (var x=0; x<=cols_count-1; x++){
-                    cell = data[y][x];
-
-                    if (cell === " ") {
-//                        ctx.fillStyle = "#FF0000";
-//                        ctx.fillRect(x * side_size, y * side_size, side_size, side_size);
-                    } else if (cell === "*"){
-                        ctx.fillStyle="#FF0000";
-                        ctx.fillRect(x*side_size,y*side_size,side_size,side_size);
-                    } else if (cell === "@"){
-                        ctx.fillStyle="#0a950e";
-                        ctx.fillRect(x*side_size,y*side_size,side_size,side_size);
-                    } else {
-                        ctx.fillStyle="#000f95";
-                        ctx.fillRect(x*side_size,y*side_size,side_size,side_size);
-
-                    }
-
+                if (window.innerWidth > window.innerHeight) {
+                    this.basic_side = window.innerHeight;
+                } else {
+                    this.basic_side = window.innerWidth;
                 }
 
-            }
-            ctx.stroke();
-        });
+                this.canv.setAttribute("width", this.basic_side);
+                this.canv.setAttribute("height", this.basic_side);
 
+                this.side_size = this.basic_side / this.cols_count;
+
+//
+//                this.canv.setAttribute("width", this.cols_count * this.side_size);
+//                this.canv.setAttribute("height", this.rows_count * this.side_size);
+
+                this.ctx.fillStyle = "rgb(217,237,241)";
+                this.ctx.fillRect(0, 0, this.cols_count * this.side_size, this.rows_count * this.side_size);
+
+                this.ctx.stroke();
+
+                this.is_map_created = true;
+            }
+
+            register_events() {
+                this.hammertime.on("swipeup", () => {
+                    this.socket.emit('key_pressed', this.uuid+'|up');
+                });
+                this.hammertime.on("swipedown", () => {
+                    this.socket.emit('key_pressed', this.uuid+'|down');
+                });
+
+                this.hammertime.on("swipeleft", () => {
+                    this.socket.emit('key_pressed', this.uuid+'|left');
+                });
+                this.hammertime.on("swiperight", () => {
+                    this.socket.emit('key_pressed', this.uuid+'|right');
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.code == "ArrowRight") {
+                        this.socket.emit('key_pressed', this.uuid+'|right');
+                    } else if (event.code == "ArrowLeft") {
+                        this.socket.emit('key_pressed', this.uuid+'|left');
+                    } else if (event.code == "ArrowUp") {
+                        this.socket.emit('key_pressed', this.uuid+'|up');
+                    } else if (event.code == "ArrowDown") {
+                        this.socket.emit('key_pressed', this.uuid+'|down');
+                    } else if (event.code == "KeyR") {
+                        this.socket.emit('key_pressed', this.uuid+'|r');
+                        this.uuid = guid()
+                        this.socket.emit('key_pressed', this.uuid+'|up');
+                    }
+                })
+
+                this.socket.on('map', (data) => {
+                    try {
+                        data = JSON.parse(data);
+                    } catch(err) {
+                        console.log(data);
+                        return
+                    }
+                    if (this.is_map_created === false) {
+                        this.create_map_vars(data)
+                    }
+
+                    this.map = data;
+                    if (this.previous_map === null){
+                        this.previous_map = this.map;
+                    }
+                })
+            }
+
+            start_map_request_loop() {
+                // Line that explains why I hate JS.
+                var that = this;
+                setInterval(function(){
+                    that.socket.emit('map', that.uuid);
+                }, 50);
+            }
+
+            start_map_refresh_loop() {
+                setInterval(() => {
+
+//                    this.ctx.beginPath();
+
+                    var cell;
+                    for (var y = 0; y <= this.rows_count - 1; y++) {
+                        for (var x = 0; x <= this.cols_count - 1; x++) {
+                            cell = this.map[y][x];
+
+                            if (cell !== this.previous_map[y][x]) {
+
+
+                                if (cell === " " || cell === "") {
+                                    this.ctx.fillStyle = "rgb(217,237,241)";
+                                    this.ctx.fillRect(x * this.side_size, y * this.side_size, this.side_size, this.side_size);
+                                } else if (cell === "*") {
+                                    this.ctx.fillStyle = "#FF0000";
+                                    this.ctx.fillRect(x * this.side_size, y * this.side_size, this.side_size, this.side_size);
+                                } else if (cell === "@") {
+                                    this.ctx.fillStyle = "#0a950e";
+                                    this.ctx.fillRect(x * this.side_size, y * this.side_size, this.side_size, this.side_size);
+                                } else {
+                                    var clr =
+                                        "rgb(" + cell["color"][0] + "," + cell["color"][1] + "," + cell["color"][2] + ")";
+                                    this.ctx.fillStyle = clr;
+                                    this.ctx.fillRect(x * this.side_size, y * this.side_size, this.side_size, this.side_size);
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+                    this.ctx.stroke();
+                    this.previous_map = this.map;
+
+                }, 10);
+            }
+        }
 
     </script>
 
@@ -86,9 +188,17 @@
 
 <canvas
         id="game_canvas"
-        width="200" height="100"
+        width="500px"
         style="border:1px solid #000000;">
 </canvas>
 
+<script>
+    var ui = new SnakeWebUI();
+
+    ui.register_events();
+    ui.start_map_request_loop();
+    ui.start_map_refresh_loop();
+
+</script>
 </body>
 </html>

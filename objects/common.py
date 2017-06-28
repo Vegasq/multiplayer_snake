@@ -27,7 +27,7 @@ class Cell(object):
         self._owner = None
 
         # Color as an RGB tuple
-        self.color = (0,0,0)
+        self.color = (0, 0, 0)
 
     def set_owner(self, owner):
         self._owner = owner

@@ -101,3 +101,5 @@ class Snake(CellStack, Killable):
 
     def do(self, direction):
         self.move(direction)
+        context.set_head_position(self.uuid, self.get_head().x,
+                                  self.get_head().y)

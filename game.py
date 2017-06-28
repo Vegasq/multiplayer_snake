@@ -119,6 +119,16 @@ class Stack(object):
         elif obj.__class__ == Wall:
             self._walls.append(obj)
 
+    def get_available_snake_color(self):
+        taken_colors = []
+        for s in self.all_alive_snakes:
+            taken_colors.append(s.color)
+
+        for c in settings.colors["players"]:
+            if c not in taken_colors:
+                return c
+        raise Exception("No free colors available for player :(")
+
     @property
     def all_alive_snakes(self) -> Snake:
         for s in self._snakes:
@@ -149,6 +159,10 @@ class Stack(object):
     @property
     def alive_apples_count(self) -> None:
         return len([a for a in self._apples if a.alive])
+
+    @property
+    def alive_snakes_count(self) -> None:
+        return len([a for a in self._snakes if a.alive])
 
     @property
     def walls_count(self) -> None:
@@ -193,7 +207,10 @@ class Game(object):
 
     def create_snake(self, client_uuid):
         x, y = self.world.get_empty_position()
-        self.stack.add(Snake(client_uuid, x, y))
+        color = self.stack.get_available_snake_color()
+        snake = Snake(client_uuid, x, y)
+        snake.color = color
+        self.stack.add(snake)
 
     def create_wall(self):
 
@@ -217,7 +234,10 @@ class Game(object):
             # Create new Snakes at the start of step
             with context.lock:
                 for client_uuid in context.clients.keys():
-                    if not self.stack.is_snake_exist(client_uuid):
+                    if (
+                        not self.stack.is_snake_exist(client_uuid) and
+                        self.stack.alive_snakes_count < settings.max_players
+                    ):
                         self.create_snake(client_uuid)
 
             # Generate apples

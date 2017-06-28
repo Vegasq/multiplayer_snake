@@ -50,6 +50,14 @@ all_walls = (
 class WallCell(Cell):
     printable_symbol = "*"
 
+    def serialize_cell(self):
+        return {
+            "type": "SnakeCell",
+            "color": self.get_owner().color,
+            "printable_symbol": "*",
+            "alive": self.get_owner().alive
+        }
+
 
 class Wall(CellStack, Killable):
     """
@@ -63,7 +71,7 @@ class Wall(CellStack, Killable):
             wall_template.append((i, 0))
 
         # bottom border
-        for i in range(0, settings.columns - 1):
+        for i in range(0, settings.columns):
             wall_template.append((i, settings.rows-1))
 
         # left border
@@ -89,6 +97,8 @@ class Wall(CellStack, Killable):
             c = WallCell(x + pos[0], y + pos[1], hardness=hard)
             c.set_owner(self)
             self.add_cell(c)
+
+        self.color = settings.colors["wall"]
 
     def kill(self):
         print("Killing wall frame=%s alive=%s" % (
